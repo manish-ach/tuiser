@@ -2,6 +2,15 @@
 A TUI program using 'cursive', a TUI library for rust. Currently there is no fixed set direction on what this is going to be.
 This is just a demo and a placeholder for upcoming project this is going to be used on
 
+## Current Features
+- simple add & delete records
+- form list
+
+## Planned Features
+- save data in files locally
+- read various file types
+- user editable theme
+
 ## ScreenShot
 new theme:
 
