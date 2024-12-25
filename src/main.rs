@@ -1,12 +1,90 @@
 use cursive::traits::*;
-use cursive::views::{Button, Dialog, DummyView, EditView, LinearLayout, SelectView, TextView, ListView, TextArea, Checkbox};    
+use cursive::views::{Button, Dialog, DummyView, EditView, LinearLayout, SelectView, TextView, ListView, TextArea, Checkbox};
 use cursive::Cursive;
 use cursive::theme::{Palette, BorderStyle};
+use cursive::menu;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 fn main() {
     let mut siv = cursive::default();
     // let theme = app_theme(&siv);
     // siv.set_theme(theme);
+
+    siv.add_global_callback('q', Cursive::quit);
+    menu(&mut siv);
+    base(&mut siv);
+    siv.run();
+}
+
+fn menu(siv: &mut Cursive) {
+    let counter = AtomicUsize::new(1);
+        // The menubar is a list of (label, menu tree) pairs.
+        siv.menubar()
+            // We add a new "File" tree
+            .add_subtree(
+                "File",
+                menu::Tree::new()
+                    .leaf("New", move |s| {
+                        // Here we use the counter to add an entry
+                        // in the list of "Recent" items.
+                        let i = counter.fetch_add(1, Ordering::Relaxed);
+                        let filename = format!("New {i}");
+                        s.menubar()
+                            .find_subtree("File")
+                            .unwrap()
+                            .find_subtree("Recent")
+                            .unwrap()
+                            .insert_leaf(0, filename, |_| ());
+
+                        s.add_layer(Dialog::info("New file!"));
+                    })
+                    .subtree(
+                        "Recent",
+                        // The `.with()` method can help when running loops
+                        // within builder patterns.
+                        menu::Tree::new().with(|tree| {
+                            for i in 1..5 {
+                                tree.add_item(menu::Item::leaf(format!("Item {i}"), |_| ()).with(|s| {
+                                    if i % 5 == 0 { s.disable(); }
+                                }))
+                            }
+                        }),
+                    )
+                    // Delimiter are simple lines between items,
+                    // and cannot be selected.
+                    .delimiter()
+                    .with(|tree| {
+                        for i in 1..10 {
+                            tree.add_leaf(format!("Option {i}"), |_| ());
+                        }
+                    }),
+            )
+            .add_subtree(
+                "Help",
+                menu::Tree::new()
+                    .subtree(
+                        "Help",
+                        menu::Tree::new()
+                            .leaf("General", |s| {
+                                s.add_layer(Dialog::info("Help message!"))
+                            })
+                            .leaf("Online", |s| {
+                                let text = "Google it yourself!\n\
+                                            Kids, these days...";
+                                s.add_layer(Dialog::info(text))
+                            }),
+                    )
+                    .leaf("About", |s| {
+                        s.add_layer(Dialog::info("Cursive v0.0.0"))
+                    }),
+            )
+            .add_delimiter()
+            .add_leaf("Quit", |s| s.quit());
+        siv.set_autohide_menu(false);
+}
+
+//main workscreen, moduled for better reausability
+fn base(siv: &mut Cursive) {
     siv.set_theme(cursive::theme::Theme {
         shadow: true,
         borders: BorderStyle::Simple,
@@ -39,13 +117,6 @@ fn main() {
             }
         }),
     });
-    siv.add_global_callback('q', Cursive::quit);
-    base(&mut siv);
-    siv.run();
-}
-
-//main workscreen, moduled for better reausability
-fn base(siv: &mut Cursive) {
     let select = SelectView::<String>::new()
         .on_submit(on_submit)
         .with_name("select")
@@ -69,13 +140,6 @@ fn base(siv: &mut Cursive) {
     );
 }
 
-// fn app_theme(s: &Cursive) -> Theme {
-//     let mut theme = s.current_theme().clone();
-//     theme.palette[PaletteColor::Background] = Color::Rgb(50, 50, 50);
-//     theme.palette[PaletteColor::HighlightText] = Color::Rgb(0, 0, 0); 
-//     return theme;
-// }
-
 //functions for buttons
 fn list(s: &mut Cursive) {
     s.add_layer(
@@ -88,7 +152,9 @@ fn list(s: &mut Cursive) {
                 ListView::new()
                     // Each child is a single-line view with a label
                     .child("Name", EditView::new().fixed_width(10))
+                    .child(" ",DummyView.fixed_width(15))
                     .child("Presentation", TextArea::new().min_height(4))
+                    .child(" ",DummyView.fixed_width(15))
                     .child(
                         "Receive spam?",
                         Checkbox::new().on_change(|s, checked| {
@@ -135,7 +201,7 @@ fn list(s: &mut Cursive) {
                     )
                     .with(|list| {
                         // child editviews
-                        for i in 0..50 {
+                        for i in 0..10 {
                             list.add_child(
                                 &format!("demo {i}"),
                                 EditView::new(),
